@@ -1,6 +1,7 @@
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 \usepackage{cite}
+\usepackage{microtype}
 \usepackage{amsmath,amssymb,amsfonts,amsthm}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -38,7 +39,7 @@
 \maketitle
 
 \begin{abstract}
-Open-source software (OSS) underpins nearly every commercial software stack, yet most maintainers are unpaid and recognition is decided by a few grant committees and sponsors. Existing mechanisms do not close the gap: Gitcoin's quadratic-funding rounds are periodic, Coordinape's peer allocation inherits popularity bias, SourceCred's graph scores are opaque, and Google Summer of Code is seasonal. This paper reports on BlockSource, a system that converts GitHub activity into Experience Points (XP), 100 levels and UCoin (UCN) ERC-20 rewards on Ethereum. We deployed a first version on the Sepolia testnet in April 2025 and use its public transaction record as ground truth. An audit of that deployment found that withdrawal requests were not tied to earned rewards, any wallet could claim any GitHub username, XP was computed in the browser and never reached the chain, claimed amounts were kept in \texttt{localStorage}, and the OAuth client secret was committed to the repository. Version~1.1 binds a numeric GitHub id to one wallet through an EIP-712 attestation, synchronises a monotonic all-time count of public contributions, computes levels and rewards ($5 \cdot 1.08^{L}$ UCN at level $L$) on chain, and caps withdrawals at the on-chain entitlement. Local gas measurements of the v1.0 sources match Sepolia receipts to within 0.6\%. In v1.1 a batched sync costs 14{,}004 gas per user, a withdrawal request 18\% less than in v1.0, and a first payout 35\% more because claims are now recorded on chain. At 2026's typical 0.5\,gwei base fee every user operation costs under US\$0.18; at 15--40\,gwei the same operations cost US\$0.57--14. We also show that v1.0's 1{,}000{,}001-UCN supply could fund only 4.7 contributors to level~100.
+Open-source software (OSS) underpins nearly every commercial software stack, yet most maintainers are unpaid and recognition is decided by a few grant committees and sponsors. Existing mechanisms do not close the gap: Gitcoin's quadratic-funding rounds are periodic, Coordinape's peer allocation inherits popularity bias, SourceCred's graph scores are opaque, and Google Summer of Code is seasonal. This paper reports on BlockSource, a system that converts GitHub activity into Experience Points (XP), 100 levels and UCoin (UCN) ERC-20 rewards on Ethereum. We deployed a prototype on the Sepolia testnet in April 2025 and use its public transaction record as ground truth. An audit of that prototype found that withdrawal requests were not tied to earned rewards, any wallet could claim any GitHub username, XP was computed in the browser and never reached the chain, claimed amounts were kept in \texttt{localStorage}, and the OAuth client secret was committed to the repository. BlockSource binds a numeric GitHub id to one wallet through an EIP-712 attestation, synchronises a monotonic all-time count of public contributions, computes levels and rewards ($5 \cdot 1.08^{L}$ UCN at level $L$) on chain, and caps withdrawals at the on-chain entitlement. Local gas measurements of the prototype's sources match Sepolia receipts to within 0.6\%. In BlockSource a batched sync costs 14{,}004 gas per user, a withdrawal request 18\% less than in the prototype, and a first payout 35\% more because claims are now recorded on chain. At 2026's typical 0.5\,gwei base fee every user operation costs under US\$0.18; at 15--40\,gwei the same operations cost US\$0.57--14. We also show that the prototype's 1{,}000{,}001-UCN supply could fund only 4.7 contributors to level~100.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -63,7 +64,7 @@ Several mechanisms try to route money or reputation back to contributors. They d
 
 \textit{Matching funds.} Gitcoin Grants implements quadratic funding~\cite{buterin2019qf}: donations are matched in proportion to the square of the sum of square roots of contributions, which favours broad support over large single donors. The mechanism is theoretically attractive, but it runs in discrete rounds, depends on Sybil defences around donor identity~\cite{gitcoin}, and pays projects, not individual commits.
 
-\textit{Algorithmic and peer reputation.} SourceCred builds a contribution graph and runs a PageRank-style algorithm to assign ``Cred'', which can then drive token distributions~\cite{sourcecred}. Its weights are configurable per community, which makes it flexible and also hard to audit, and graph-based scores reward the creation of edges as much as useful work. Coordinape distributes GIVE tokens through peer allocation in fixed epochs~\cite{coordinape}; it captures tacit knowledge of who helped whom, but peer allocation inherits popularity effects and requires every member to allocate every epoch.
+\textit{Algorithmic and peer reputation.} SourceCred builds a contribution graph and runs an algorithm similar to PageRank to assign ``Cred'', which can then drive token distributions~\cite{sourcecred}. Its weights are configurable per community, which makes it flexible and also hard to audit, and graph-based scores reward the creation of edges as much as useful work. Coordinape distributes GIVE tokens through peer allocation in fixed epochs~\cite{coordinape}; it captures tacit knowledge of who helped whom, but peer allocation inherits popularity effects and requires every member to allocate every epoch.
 
 \textit{Programmes.} Google Summer of Code provides mentorship and a stipend, and Silva \textit{et al.} show that it can produce lasting engagement~\cite{silva2020gsoc}. It is also annual, capacity-limited, and centrally administered.
 
@@ -89,7 +90,7 @@ Dework~\cite{dework} & Per task & Manual reviewer sign-off & Partial: wallet pay
 GitHub Sponsors~\cite{shimada2022sponsors} & Monthly & None (gift) & Centralised (GitHub) & GitHub only & None \\
 Bountysource~\cite{zhou2021bounty} & Per issue & Backer acceptance & Centralised & Platform only & None \\
 \midrule
-\textbf{BlockSource v1.1} & \textbf{Per sync} (on demand, and every 6\,h) & \textbf{OAuth-attested identity bound on chain; all-time public counts that anyone can recompute; monotonic sync} & \textbf{On-chain ledger and entitlements; attester and payout review are trusted roles (Sec.~\ref{sec:trust})} & \textbf{Public ledger, any EVM reader} & \textbf{XP, 100 levels, 21 titles, role} \\
+\textbf{BlockSource} & \textbf{Per sync} (on demand, and every 6\,h) & \textbf{OAuth-attested identity bound on chain; all-time public counts that anyone can recompute; monotonic sync} & \textbf{On-chain ledger and entitlements; attester and payout review are trusted roles (Sec.~\ref{sec:trust})} & \textbf{Public ledger, any EVM reader} & \textbf{XP, 100 levels, 21 titles, role} \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -97,28 +98,28 @@ Bountysource~\cite{zhou2021bounty} & Per issue & Backer acceptance & Centralised
 \subsection{Contributions}
 This paper is a report on a working system rather than a proposal. It makes four contributions.
 \begin{enumerate}
-\item \textbf{A deployed baseline and its audit.} We describe BlockSource~1.0 as it was built and deployed on Sepolia, use its on-chain history as evidence, and reproduce each weakness with an executable test (Sec.~\ref{sec:v1}).
-\item \textbf{A hardened design (v1.1)} with an EIP-712 identity binding~\cite{eip712}, a monotonic count-based XP sync that is idempotent by construction, and withdrawals capped by on-chain entitlement (Sec.~\ref{sec:design}).
+\item \textbf{A deployed baseline and its audit.} We describe the BlockSource prototype as it was built and deployed on Sepolia, use its on-chain history as evidence, and reproduce each weakness with an executable test (Sec.~\ref{sec:v1}).
+\item \textbf{A hardened design} with an EIP-712 identity binding~\cite{eip712}, a monotonic count-based XP sync that is idempotent by construction, and withdrawals capped by on-chain entitlement (Sec.~\ref{sec:design}).
 \item \textbf{A closed-form progression and reward model} using the parameters actually shipped, with an exact integer level inverse, emission bounds for both token supplies, and the per-contribution yield (Sec.~\ref{sec:math}).
-\item \textbf{An evaluation} that validates local gas measurement against Sepolia receipts and then compares v1.0 and v1.1 on gas, throughput, latency and treasury capacity (Sec.~\ref{sec:eval}).
+\item \textbf{An evaluation} that validates local gas measurement against Sepolia receipts and then compares the prototype and the hardened design on gas, throughput, latency and treasury capacity (Sec.~\ref{sec:eval}).
 \end{enumerate}
 Section~\ref{sec:discussion} discusses limitations and Section~\ref{sec:conclusion} concludes.
 
 %======================================================================
-\section{BlockSource 1.0: Deployment and Audit}\label{sec:v1}
+\section{The Deployed Prototype and Its Audit}\label{sec:v1}
 %======================================================================
 
 \subsection{Architecture as built}
-Version~1.0 has three parts. A React application (Vite, Tailwind CSS, shadcn/ui, Ethers.js~6) talks to MetaMask and to GitHub. A small Express server performs the GitHub OAuth code exchange. Three Solidity contracts, compiled with solc~0.8.20 and deployed with Hardhat, run on Sepolia: \texttt{UCoin}, a hand-written ERC-20 with 1{,}000{,}001~UCN split 70/30 between a reward treasury and a developer wallet; \texttt{UserDatabase}, which stores a wallet, a username string, an XP value and a last-rewarded level per user under OpenZeppelin \texttt{AccessControl}; and \texttt{RewardMechanism}, which holds the treasury and pays a user's withdrawal request after the owner approves it.
+The prototype has three parts. A React application (Vite, Tailwind CSS, shadcn/ui, Ethers.js~6) talks to MetaMask and to GitHub. A small Express server performs the GitHub OAuth code exchange. Three Solidity contracts, compiled with solc~0.8.20 and deployed with Hardhat, run on Sepolia: \texttt{UCoin}, a hand-written ERC-20 with 1{,}000{,}001~UCN split 70/30 between a reward treasury and a developer wallet; \texttt{UserDatabase}, which stores a wallet, a username string, an XP value and a last-rewarded level per user under OpenZeppelin \texttt{AccessControl}; and \texttt{RewardMechanism}, which holds the treasury and pays a user's withdrawal request after the owner approves it.
 
-The progression rules live in the browser. The dashboard reads \texttt{contributionCalendar.totalContributions} from GitHub's GraphQL API, multiplies it by 50 to obtain XP, derives a level from $\XP_n = 50n(n+1)$, a title from 21 milestone names, and an entitlement of $5 \cdot 1.08^{L}$~UCN per level. It subtracts a ``claimed'' total kept in \texttt{localStorage} and lets the user request the difference.
+The progression rules live in the browser. The dashboard reads the 12-month total of GitHub's contribution calendar through the GraphQL API, multiplies it by 50 to obtain XP, derives a level from $\XP_n = 50n(n+1)$, a title from 21 milestone names, and an entitlement of $5 \cdot 1.08^{L}$~UCN per level. It subtracts a ``claimed'' total kept in \texttt{localStorage} and lets the user request the difference.
 
 \subsection{On-chain record}
 The three contracts are still live, which gives an unusually clean view of how the prototype was used (Table~\ref{tab:sepolia}). All nine \texttt{UserDatabase} transactions carry selector \texttt{0xd0020fad}, which is \texttt{setUser(string)}: seven registrations from seven wallets, and two duplicates that reverted. \texttt{updateUserXP} was never called, so every user's on-chain XP is still zero. The reward contract recorded 36 transactions, alternating requests and owner approvals; one wallet submitted five requests between April and May 2025 and each was approved by hand. The treasury still holds 699{,}974.7~UCN, so 26.0~UCN were paid out in total.
 
 \begin{table}[t]
 \centering
-\caption{v1.0 contracts on Sepolia (snapshot 21 Oct 2026)}
+\caption{Prototype contracts on Sepolia (snapshot 21 Oct 2026)}
 \label{tab:sepolia}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -134,17 +135,17 @@ The three contracts are still live, which gives an unusually clean view of how t
 \end{table}
 
 \subsection{Findings}
-We audited the repository at its initial commit and the deployed contracts. Table~\ref{tab:audit} lists the findings. Each contract finding is reproduced by a passing test that runs the v1.0 sources compiled exactly as deployed.
+We audited the repository at its initial commit and the deployed contracts. Table~\ref{tab:audit} lists the findings. Each contract finding is reproduced by a passing test that runs the prototype's sources compiled exactly as deployed.
 
 \begin{table*}[t]
 \centering
-\caption{Audit of BlockSource 1.0 and the corresponding change in v1.1}
+\caption{Audit of the prototype and the corresponding change in BlockSource}
 \label{tab:audit}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}l l >{\raggedright\arraybackslash}p{7.6cm} >{\raggedright\arraybackslash}p{6.0cm}@{}}
 \toprule
-\textbf{ID} & \textbf{Severity} & \textbf{Finding in v1.0} & \textbf{Change in v1.1}\\
+\textbf{ID} & \textbf{Severity} & \textbf{Finding in the prototype} & \textbf{Change in BlockSource}\\
 \midrule
 S1 & Critical & OAuth client secret committed in the server source & Secret moved to environment; old secret must be revoked\\
 F2 & Critical & \texttt{requestWithdrawal} accepts any amount from any wallet; only the owner's manual check protects the treasury & Request capped at on-chain \emph{earned} $-$ \emph{claimed}\\
@@ -166,15 +167,15 @@ M1 & Low & Reviewer rule differs between UI ($>$50 contributions), README (15{,}
 The two critical findings matter most. Because \texttt{RewardMechanism} never consults \texttt{UserDatabase}, the dashboard's ``Max Requestable'' limit is a convenience, not a control: our test F2 drains the full 700{,}000.7~UCN treasury from an unregistered wallet with one request and one approval. On Sepolia the owner approved every request seen, which is safe only while the owner recognises every user. The committed OAuth secret lets anyone impersonate the application to GitHub users, and combined with the \texttt{repo} scope it could have been used to request write access to their private repositories. Neither finding needs a clever attacker.
 
 %======================================================================
-\section{BlockSource 1.1: Design}\label{sec:design}
+\section{BlockSource Design}\label{sec:design}
 %======================================================================
 
 \subsection{Roles, trust model and access control}\label{sec:trust}
-Version~1.1 keeps the three-contract layout so that the frontend and deployment scripts change little, but moves every rule that affects money on chain. \texttt{UserDatabase} (under OpenZeppelin \texttt{AccessControl}) recognises three roles: \texttt{DEFAULT\_ADMIN} can suspend users; \texttt{ATTESTER} signs identity bindings; \texttt{XP\_UPDATER} submits contribution counts. \texttt{RewardMechanism} uses \texttt{Ownable2Step}~\cite{woehrer2018patterns}: the owner reviews withdrawals above a configurable \texttt{instantLimit} and can change that limit.
+BlockSource keeps the prototype's three-contract layout so that the frontend and deployment scripts change little, but moves every rule that affects money on chain. \texttt{UserDatabase} (under OpenZeppelin \texttt{AccessControl}) recognises three roles: \texttt{DEFAULT\_ADMIN} can suspend users; \texttt{ATTESTER} signs identity bindings; \texttt{XP\_UPDATER} submits contribution counts. \texttt{RewardMechanism} uses \texttt{Ownable2Step}~\cite{woehrer2018patterns}: the owner reviews withdrawals above a configurable \texttt{instantLimit} and can change that limit.
 
 Users hold one of two roles derived from XP: Contributor, and Reviewer from $\XP^{\mathrm{rev}} = 21{,}000$. Because $\XP_{20} = 50 \cdot 20 \cdot 21 = 21{,}000$, promotion coincides with level~20 and 420 counted contributions. The role is computed on read and announced once by a \texttt{ReviewerPromoted} event, so promotion writes no storage.
 
-The trust model is explicit. The ledger and the rules are public, so anyone can recompute a user's level and entitlement from events. Two parties remain trusted: the backend reports contribution counts, which is the oracle problem in its usual form~\cite{caldarelli2020oracle}, and the owner reviews large withdrawals. v1.1 narrows both. Counts are restricted to public data, so a third party can recompute every count from GitHub's API and detect a dishonest attester; and the owner can now only \emph{delay or refuse} a payout, never pay more than the contract has credited.
+The trust model is explicit. The ledger and the rules are public, so anyone can recompute a user's level and entitlement from events. Two parties remain trusted: the backend reports contribution counts, which is the oracle problem in its usual form~\cite{caldarelli2020oracle}, and the owner reviews large withdrawals. The design narrows both. Counts are restricted to public data, so a third party can recompute every count from GitHub's API and detect a dishonest attester; and the owner can now only \emph{delay or refuse} a payout, never pay more than the contract has credited.
 
 \subsection{Progression and reward model}\label{sec:math}
 
@@ -196,9 +197,9 @@ For XP $x$, let $m = \lfloor x/50 \rfloor$ and $s = \lfloor \sqrt{4m+1} \rfloor$
 \begin{proof}
 $n(n+1) \le m \iff (2n+1)^2 \le 4m+1 \iff 2n+1 \le s$ since $2n+1$ is an integer.
 \end{proof}
-v1.0's dashboard found the level with a loop; the contract evaluates Proposition~\ref{prop:inverse} in constant gas with an integer square root, and the frontend uses the same formula so both always agree.
+The prototype's dashboard found the level with a loop; the contract evaluates Proposition~\ref{prop:inverse} in constant gas with an integer square root, and the frontend uses the same formula so both always agree.
 
-\textit{Rewards.} Reaching level $L$ credits $R(L) = 5 \cdot 1.08^{L}$~UCN, the rule shipped in v1.0. The contract computes it in 18-decimal fixed point with $r_\ell = \lfloor 108\,r_{\ell-1}/100 \rfloor$; the result differs from the browser's floating-point value by less than $10^{-12}$ relative.
+\textit{Rewards.} Reaching level $L$ credits $R(L) = 5 \cdot 1.08^{L}$~UCN, the rule shipped in the prototype. The contract computes it in 18-decimal fixed point with $r_\ell = \lfloor 108\,r_{\ell-1}/100 \rfloor$; the result differs from the browser's floating-point value by less than $10^{-12}$ relative.
 
 \begin{proposition}[Emission bounds]\label{prop:emission}
 The cumulative reward at level $L$ is $S(L) = \sum_{\ell=1}^{L} 5 \cdot 1.08^{\ell} = 67.5\,(1.08^{L} - 1)$~UCN; $S(20) = 247.1$ and $S(100) \approx 1.484 \times 10^{5}$. The per-user \texttt{uint96} field cannot overflow.
@@ -207,7 +208,7 @@ The cumulative reward at level $L$ is $S(L) = \sum_{\ell=1}^{L} 5 \cdot 1.08^{\e
 Geometric series with ratio 1.08: $5 \cdot 1.08 / 0.08 = 67.5$; $1.08^{100} \approx 2199.76$; $S(100) \ll 2^{96}$ wei.
 \end{proof}
 
-With v1.0's treasury of 700{,}000.7~UCN, $S(100)$ means only $4.7$ contributors could ever reach level~100 and 2{,}833 could reach level~20. v1.1 therefore mints $10^{8}$~UCN once (70\,M treasury, 30\,M developer reserve), which raises those numbers to 471.6 and 283{,}269 (Table~\ref{tab:prog}). There is still no mint function, so supply is fixed. \texttt{UserDatabase} tracks \texttt{totalEarned} against an immutable \texttt{rewardBudget} equal to the treasury and pays a partial reward when the budget runs short, so the contracts never promise more than the treasury holds.
+With the prototype's treasury of 700{,}000.7~UCN, $S(100)$ means only $4.7$ contributors could ever reach level~100 and 2{,}833 could reach level~20. BlockSource therefore mints $10^{8}$~UCN once (70\,M treasury, 30\,M developer reserve), which raises those numbers to 471.6 and 283{,}269 (Table~\ref{tab:prog}). There is still no mint function, so supply is fixed. \texttt{UserDatabase} tracks \texttt{totalEarned} against an immutable \texttt{rewardBudget} equal to the treasury and pays a partial reward when the budget runs short, so the contracts never promise more than the treasury holds.
 
 \begin{proposition}[U-shaped yield per contribution]\label{prop:yield}
 The UCN earned per contribution while climbing to level $L$ is $y(L) = R(L)/(2L) = 2.5 \cdot 1.08^{L}/L$, minimised over the integers at $L = 13$ ($y \approx 0.52$).
@@ -217,10 +218,10 @@ $\frac{d}{dL}\ln y = \ln 1.08 - 1/L$ changes sign at $L = 1/\ln 1.08 \approx 12.
 \end{proof}
 The yield is 2.7~UCN per contribution at level~1, 0.52 at level~13, and 55 at level~100. Section~\ref{sec:gaming} discusses what that tail invites.
 
-\textit{Milestone titles.} The 21 titles of v1.0 are kept (index $\lfloor L/5 \rfloor$): Apprentice, Aspiring, Novice, Enthusiastic, Explorer, Code Craftsman, Skilled, Proficient, Champion, Quality, Expert, Professional, Innovative, Veteran, Rising, Master, Conqueror, Top Tier, Insightful, Legendary, and Supreme at level~100. The contract exposes the index; the UI holds the strings.
+\textit{Milestone titles.} The prototype's 21 titles are kept (index $\lfloor L/5 \rfloor$): Apprentice, Aspiring, Novice, Enthusiastic, Explorer, Code Craftsman, Skilled, Proficient, Champion, Quality, Expert, Professional, Innovative, Veteran, Rising, Master, Conqueror, Top Tier, Insightful, Legendary, and Supreme at level~100. The contract exposes the index; the UI holds the strings.
 
 \subsection{Architecture and data flow}
-Fig.~\ref{fig:arch} shows v1.1. The Express server of v1.0 becomes a backend service with three jobs, and the frontend stops computing anything that affects money.
+Fig.~\ref{fig:arch} shows the architecture. The prototype's Express server becomes a backend service with three jobs, and the frontend stops computing anything that affects money.
 
 \begin{figure*}[t]
 \centering
@@ -258,38 +259,38 @@ Fig.~\ref{fig:arch} shows v1.1. The Express server of v1.0 becomes a backend ser
 \draw[arr, dashed] (db.east) -- ++(0.3,0) |- (rm.east);
 \draw[arr, dashed] (tok.south) -- ++(0,-1.75) -| node[num, pos=0.25, below]{contract events $\rightarrow$ UI refresh} (ui.south);
 \end{tikzpicture}}
-\caption{BlockSource v1.1. (1) The wallet connects. (2) GitHub OAuth establishes the numeric account id; the token is discarded. (3) The backend signs a binding attestation. (4) The user calls \texttt{register} from the wallet; withdrawals are also sent from the wallet. (5) The sync job counts all-time public contributions and (6) submits \texttt{syncXP}/\texttt{syncXPBatch}. (7) \texttt{RewardMechanism} reads \emph{earned} from \texttt{UserDatabase} (dashed) and pays from the UCoin treasury it deployed. Contract events refresh the UI.}
+\caption{BlockSource architecture. (1) The wallet connects. (2) GitHub OAuth establishes the numeric account id; the token is discarded. (3) The backend signs a binding attestation. (4) The user calls \texttt{register} from the wallet; withdrawals are also sent from the wallet. (5) The sync job counts all-time public contributions and (6) submits \texttt{syncXP}/\texttt{syncXPBatch}. (7) \texttt{RewardMechanism} reads \emph{earned} from \texttt{UserDatabase} (dashed) and pays from the UCoin treasury it deployed. Contract events refresh the UI.}
 \label{fig:arch}
 \end{figure*}
 
-\textit{Identity binding.} After OAuth, the backend knows the user's immutable numeric GitHub id and current login. On request it signs $\mathrm{Bind}(\mathit{wallet}, \mathit{githubId}, \mathit{login}, \mathit{deadline})$ with the attester key under the EIP-712 domain (\texttt{BlockSource}, \texttt{1.1}, chain id, contract address). The user submits \texttt{register} from the named wallet. The contract recovers the signer, checks \texttt{ATTESTER\_ROLE}, and rejects a second wallet for the id or a second id for the wallet. Because \texttt{msg.sender} is inside the signed message, an attestation seen in the mempool cannot be replayed from another wallet; the deadline (10 minutes by default) limits the damage of a leaked signature; and revoking the attester role voids all outstanding attestations. This closes F3 for accounts, though one person can still own several GitHub accounts~\cite{douceur2002sybil,siddarth2020watchmen}.
+\textit{Identity binding.} After OAuth, the backend knows the user's immutable numeric GitHub id and current login. On request it signs $\mathrm{Bind}(\mathit{wallet}, \mathit{githubId}, \mathit{login}, \mathit{deadline})$ with the attester key under the contract's EIP-712 domain, which fixes the application name, chain id and contract address. The user submits \texttt{register} from the named wallet. The contract recovers the signer, checks \texttt{ATTESTER\_ROLE}, and rejects a second wallet for the id or a second id for the wallet. Because \texttt{msg.sender} is inside the signed message, an attestation seen in the mempool cannot be replayed from another wallet; the deadline (10 minutes by default) limits the damage of a leaked signature; and revoking the attester role voids all outstanding attestations. This closes F3 for accounts, though one person can still own several GitHub accounts~\cite{douceur2002sybil,siddarth2020watchmen}.
 
-\textit{Counting contributions.} The sync job resolves the current login from the id (\texttt{GET /user/\{id\}}, so renames are harmless), then sends one GraphQL request with one aliased \texttt{contributionsCollection} per calendar year since the account was created, because a collection spans at most a year~\cite{githubdocs}. It sums \texttt{totalCommitContributions}, \texttt{totalIssueContributions}, \texttt{totalPullRequestContributions} and \texttt{totalPullRequestReviewContributions}. Only public contributions are counted, with a server token that has no scopes, so the number does not depend on whose token is used (X1) and anyone can reproduce it. The login is passed as a GraphQL variable (X3).
+\textit{Counting contributions.} The sync job resolves the current login from the id (\texttt{GET /user/\{id\}}, so renames are harmless), then sends one GraphQL request with one aliased \texttt{contributionsCollection} per calendar year since the account was created, because a collection spans at most a year~\cite{githubdocs}. It sums four counters per year: commits, issues, pull requests and pull-request reviews. Only public contributions are counted, with a server token that has no scopes, so the number does not depend on whose token is used (X1) and anyone can reproduce it. The login is passed as a GraphQL variable (X3).
 
 \textit{Monotonic sync.} \texttt{syncXP(user, count)} sets $\XP = 50 \cdot \mathit{count}$ only if that exceeds the stored value. This one rule makes the sync idempotent (sending the same count twice is a no-op), order-insensitive (an old count arriving late is ignored), and safe against a count that shrinks when a user deletes a repository (F4). When XP rises, the contract computes the new level by Proposition~\ref{prop:inverse}, adds the rewards for every crossed level to \emph{earned}, and emits \texttt{LevelUp}. A batch form takes up to a few hundred users per transaction. The backend syncs a user on demand (rate-limited to once per 10 minutes) and all users every six hours.
 
-\textit{Withdrawals.} \texttt{RewardMechanism} reads \emph{earned} and the active flag from \texttt{UserDatabase} and keeps \texttt{claimed[user]} itself. A request must satisfy $0 < a \le \mathit{earned} - \mathit{claimed}$; if $a \le$ \texttt{instantLimit} it is paid at once, otherwise it waits as a single pending request that the owner approves or rejects and the user can cancel. Hence for every user $\mathit{claimed} + \mathit{pending} \le \mathit{earned}$ at all times, and summed over users $\sum \mathit{earned} \le$ \texttt{rewardBudget} $=$ treasury, so the treasury cannot be overdrawn (F2, F6). State is written before the token transfer, and the token is OpenZeppelin's ERC-20 without transfer hooks, so v1.0's \texttt{ReentrancyGuard} is unnecessary~\cite{atzei2017survey,luu2016smarter}.
+\textit{Withdrawals.} \texttt{RewardMechanism} reads \emph{earned} and the active flag from \texttt{UserDatabase} and keeps \texttt{claimed[user]} itself. A request must satisfy $0 < a \le \mathit{earned} - \mathit{claimed}$; if $a \le$ \texttt{instantLimit} it is paid at once, otherwise it waits as a single pending request that the owner approves or rejects and the user can cancel. Hence for every user $\mathit{claimed} + \mathit{pending} \le \mathit{earned}$ at all times, and summed over users $\sum \mathit{earned} \le$ \texttt{rewardBudget} $=$ treasury, so the treasury cannot be overdrawn (F2, F6). State is written before the token transfer, and the token is OpenZeppelin's ERC-20 without transfer hooks, so the prototype's \texttt{ReentrancyGuard} is unnecessary~\cite{atzei2017survey,luu2016smarter}.
 
 \textit{Storage layout.} A user occupies one 256-bit slot: \texttt{uint64 githubId}, \texttt{uint32 xp}, \texttt{uint8 level}, \texttt{uint96 earned}, \texttt{uint40 lastSync}, \texttt{bool suspended} (248 bits); a pending withdrawal (\texttt{uint96}, \texttt{bool}) fits in one more. The login is stored once in a separate mapping for display. Suspension replaces deletion (F7), and \texttt{getUsers(offset, limit)} replaces the unbounded \texttt{getAllUsers} (F8).
 
-\textit{Frontend.} The dashboard now shows what the contracts say: XP, level and \emph{earned} from \texttt{UserDatabase}, \emph{claimed} and \emph{available} from \texttt{RewardMechanism}. It asks the wallet to switch to the configured chain before any transaction, decodes custom-error reverts into messages, and refreshes on contract events instead of v1.0's 15-second and 30-second polling. Contract addresses come from build-time environment variables instead of source code. The leaderboard pages through \texttt{getUsers} and ranks by on-chain XP, so every visitor sees the same order (X2).
+\textit{Frontend.} The dashboard now shows what the contracts say: XP, level and \emph{earned} from \texttt{UserDatabase}, \emph{claimed} and \emph{available} from \texttt{RewardMechanism}. It asks the wallet to switch to the configured chain before any transaction, decodes custom-error reverts into messages, and refreshes on contract events instead of the prototype's 15-second and 30-second polling. Contract addresses come from build-time environment variables instead of source code. The leaderboard pages through \texttt{getUsers} and ranks by on-chain XP, so every visitor sees the same order (X2).
 
 %======================================================================
 \section{Evaluation}\label{sec:eval}
 %======================================================================
 
 \subsection{Testbed and methodology}
-Contracts run on the Hardhat EDR network (Cancun rules). The v1.0 sources are compiled as deployed (solc~0.8.20, optimizer off); v1.1 uses solc~0.8.26 with the optimizer at 200 runs. Gas is a deterministic function of bytecode, fork rules and state, so local figures should match on-chain receipts for the same calls; Section~\ref{sec:validate} checks this. US-dollar figures assume ETH at US\$2{,}725 (early October 2026) and scale linearly in price and gas price; we price at 0.5\,gwei, close to 2026's mainnet daily averages~\cite{ethorg2026}, and at 15 and 40\,gwei. Backend timings were taken on a 2-vCPU Intel Xeon at 2.1\,GHz with Node.js~22. We could not call GitHub's GraphQL API from the test environment, so GitHub responses in backend tests are recorded fixtures.
+Contracts run on the Hardhat EDR network (Cancun rules). The prototype's sources are compiled as deployed (solc~0.8.20, optimizer off); BlockSource uses solc~0.8.26 with the optimizer at 200 runs. Gas is a deterministic function of bytecode, fork rules and state, so local figures should match on-chain receipts for the same calls; Section~\ref{sec:validate} checks this. US-dollar figures assume ETH at US\$2{,}725 (early October 2026) and scale linearly in price and gas price; we price at 0.5\,gwei, close to 2026's mainnet daily averages~\cite{ethorg2026}, and at 15 and 40\,gwei. Backend timings were taken on a 2-vCPU Intel Xeon at 2.1\,GHz with Node.js~22. We could not call GitHub's GraphQL API from the test environment, so GitHub responses in backend tests are recorded fixtures.
 
 \subsection{Functional verification}
-The contract suite has 71 Hardhat tests: 8 reproduce the v1.0 findings, 62 cover v1.1 (tokenomics, progression maths, binding, sync, suspension, pagination, withdrawals, solvency and access control), and one runs the backend's attestation and sync code against the deployed v1.1 contracts end to end. All pass, with 100\% statement, branch, function and line coverage of the three v1.1 contracts under \texttt{solidity-coverage}. The backend has 9 further tests covering year-by-year counting, GraphQL variable handling, id mismatch, OAuth \texttt{state} rejection, the absence of tokens in redirects, attestation recovery, the sync cooldown, and batch selection that skips suspended and unchanged users. The frontend builds with Vite and passes ESLint (React hooks rules) without errors.
+The contract suite has 71 Hardhat tests: 8 reproduce the prototype's findings, 62 cover BlockSource (tokenomics, progression maths, binding, sync, suspension, pagination, withdrawals, solvency and access control), and one runs the backend's attestation and sync code against the BlockSource contracts end to end. All pass, with 100\% statement, branch, function and line coverage of the three BlockSource contracts under \texttt{solidity-coverage}. The backend has 9 further tests covering year-by-year counting, GraphQL variable handling, id mismatch, OAuth \texttt{state} rejection, the absence of tokens in redirects, attestation recovery, the sync cooldown, and batch selection that skips suspended and unchanged users. The frontend builds with Vite and passes ESLint (React hooks rules) without errors.
 
 \subsection{Validating gas measurement against Sepolia}\label{sec:validate}
-Sepolia receipts give gas used as fee divided by gas price. Table~\ref{tab:validate} compares them with the same calls on the local v1.0 build. Registration and withdrawal requests match within the rounding of the explorer's fee display. Approvals are 0.5--0.6\% higher locally; the deployed \texttt{RewardMechanism} is unverified, so the repository source may not be byte-identical to it, and function dispatch order alone can shift gas by a few hundred units. We take the local environment as accurate to within 1\% for the comparisons that follow.
+Sepolia receipts give gas used as fee divided by gas price. Table~\ref{tab:validate} compares them with the same calls on a local build of the prototype. Registration and withdrawal requests match within the rounding of the explorer's fee display. Approvals are 0.5--0.6\% higher locally; the deployed \texttt{RewardMechanism} is unverified, so the repository source may not be byte-identical to it, and function dispatch order alone can shift gas by a few hundred units. We take the local environment as accurate to within 1\% for the comparisons that follow.
 
 \begin{table}[t]
 \centering
-\caption{v1.0 gas: local re-execution vs.\ Sepolia receipts}
+\caption{Prototype gas: local re-execution vs.\ Sepolia receipts}
 \label{tab:validate}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -306,22 +307,22 @@ Sepolia receipts give gas used as fee divided by gas price. Table~\ref{tab:valid
 \end{tabular}
 \end{table}
 
-\subsection{Gas: v1.0 versus v1.1}\label{sec:gas}
-Table~\ref{tab:gas} compares the two versions. Registration costs 3.5\% more in v1.1 because it verifies an ECDSA signature and stores a reverse mapping, which buys the identity binding. A single-user XP sync costs 33.7\% less than v1.0's \texttt{updateUserXP} although it also computes the level, because the profile is one packed slot; with a level-up it costs 42{,}096 gas. In batches of 100 the cost falls to 14{,}004 gas per user (Fig.~\ref{fig:batch}). A withdrawal request is 18.0\% cheaper. The first payout to a user costs 34.6\% more because it creates \texttt{claimed[user]}, a zero-to-nonzero store of about 22{,}100 gas; this is the price of moving v1.0's \texttt{localStorage} entry on chain, and it is paid once per user. Deploying v1.1 takes 3.81\,M gas against 4.79\,M for v1.0 (excluding v1.0's separate treasury funding transfer), because \texttt{RewardMechanism} creates and funds UCoin in its constructor.
+\subsection{Gas: prototype versus BlockSource}\label{sec:gas}
+Table~\ref{tab:gas} compares the two designs. Registration costs 3.5\% more in BlockSource because it verifies an ECDSA signature and stores a reverse mapping, which buys the identity binding. A single-user XP sync costs 33.7\% less than the prototype's \texttt{updateUserXP} although it also computes the level, because the profile is one packed slot; with a level-up it costs 42{,}096 gas. In batches of 100 the cost falls to 14{,}004 gas per user (Fig.~\ref{fig:batch}). A withdrawal request is 18.0\% cheaper. The first payout to a user costs 34.6\% more because it creates \texttt{claimed[user]}, a zero-to-nonzero store of about 22{,}100 gas; this is the price of moving the prototype's \texttt{localStorage} entry on chain, and it is paid once per user. Deploying BlockSource takes 3.81\,M gas against 4.79\,M for the prototype (excluding the prototype's separate treasury funding transfer), because \texttt{RewardMechanism} creates and funds UCoin in its constructor.
 
 \begin{table}[t]
 \centering
-\caption{Gas per operation and v1.1 cost (ETH = US\$2{,}725)}
+\caption{Gas per operation; US\$ cost of BlockSource calls (ETH = US\$2{,}725)}
 \label{tab:gas}
 \scriptsize
-\setlength{\tabcolsep}{2.2pt}
+\setlength{\tabcolsep}{2.4pt}
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
-& & & & \multicolumn{3}{c}{\textbf{v1.1 US\$ at gwei}}\\
+& \textbf{Proto-} & \textbf{Block-} & & \multicolumn{3}{c}{\textbf{US\$ at gwei}}\\
 \cmidrule(l){5-7}
-\textbf{Operation} & \textbf{v1.0} & \textbf{v1.1} & \textbf{$\Delta$} & \textbf{0.5} & \textbf{15} & \textbf{40}\\
+\textbf{Operation} & \textbf{type} & \textbf{Source} & \textbf{$\Delta$} & \textbf{0.5} & \textbf{15} & \textbf{40}\\
 \midrule
-Register (\texttt{setUser}/\texttt{register}) & 124{,}548 & 128{,}959 & +3.5\% & 0.18 & 5.27 & 14.06\\
+Register & 124{,}548 & 128{,}959 & +3.5\% & 0.18 & 5.27 & 14.06\\
 XP update, single user & 50{,}731 & 33{,}611 & $-$33.7\% & 0.05 & 1.37 & 3.66\\
 \quad with level-up & -- & 42{,}096 & & 0.06 & 1.72 & 4.59\\
 \quad batch of 100, per user & -- & 14{,}004 & & 0.02 & 0.57 & 1.53\\
@@ -349,7 +350,7 @@ Reject & 29{,}222 & 26{,}449 & $-$9.5\% & 0.04 & 1.08 & 2.88\\
 \addplot[thick, mark=*, mark size=1.5pt] coordinates {(1,43414)(10,16674)(50,14298)(100,14004)(200,13864)};
 \addlegendentry{\texttt{syncXPBatch} (each user levels up)}
 \addplot[dashed, domain=0.8:260] {50731};
-\addlegendentry{v1.0 \texttt{updateUserXP} (no level logic)}
+\addlegendentry{prototype \texttt{updateUserXP} (no level logic)}
 \end{axis}
 \end{tikzpicture}
 \caption{Per-user gas of a batched XP sync. Every user in the batch crosses one level.}
@@ -378,14 +379,14 @@ One \texttt{syncXP} per user & 500 & 16{,}816{,}984 & 33{,}634 & 1\\
 \end{table}
 
 \subsection{Latency}
-Off-chain work is small. On the test machine, signing a binding attestation takes 6.0\,ms on average (p95 8.1\,ms), parsing a four-year GraphQL response 0.01\,ms, and encoding and signing a 100-user batch transaction 8.7\,ms (p95 11.4\,ms). The GitHub API round trip, which we could not measure here, and slot timing dominate. Ethereum produces a block every 12\,s~\cite{buterin2020gasper}; a uniformly timed submission waits on average half a slot plus the propagation margin, about 7--11\,s to inclusion in a Monte-Carlo slot model with 1--3\,s submission delay and up to 5\% empty slots, and economic finality takes about 12.8 minutes. A user who presses ``Sync now'' therefore sees new XP in roughly one GitHub round trip plus one slot. Users who do nothing are updated by the six-hourly sweep, so the worst-case staleness of passive users is six hours plus the sweep time; v1.0, by contrast, never updated on-chain XP at all.
+Off-chain work is small. On the test machine, signing a binding attestation takes 6.0\,ms on average (p95 8.1\,ms), parsing a four-year GraphQL response 0.01\,ms, and encoding and signing a 100-user batch transaction 8.7\,ms (p95 11.4\,ms). The GitHub API round trip, which we could not measure here, and slot timing dominate. Ethereum produces a block every 12\,s~\cite{buterin2020gasper}; a uniformly timed submission waits on average half a slot plus the propagation margin, about 7--11\,s to inclusion in a Monte-Carlo slot model with 1--3\,s submission delay and up to 5\% empty slots, and economic finality takes about 12.8 minutes. A user who presses ``Sync now'' therefore sees new XP in roughly one GitHub round trip plus one slot. Users who do nothing are updated by the six-hourly sweep, so the worst-case staleness of passive users is six hours plus the sweep time; the prototype, by contrast, never updated on-chain XP at all.
 
 \subsection{Treasury capacity}
-Table~\ref{tab:prog} and Fig.~\ref{fig:prog} apply Proposition~\ref{prop:emission}. v1.0's supply would have paid level~20 to about 2{,}800 contributors and level~100 to fewer than five; the treasury would have run dry at the scale of a single mid-sized open-source community. With $10^{8}$~UCN, v1.1 carries 283{,}269 contributors to the Reviewer level.
+Table~\ref{tab:prog} and Fig.~\ref{fig:prog} apply Proposition~\ref{prop:emission}. The prototype's supply would have paid level~20 to about 2{,}800 contributors and level~100 to fewer than five; the treasury would have run dry at the scale of a single mid-sized open-source community. With $10^{8}$~UCN, BlockSource carries 283{,}269 contributors to the Reviewer level.
 
 \begin{table}[t]
 \centering
-\caption{Progression and number of fundable users}
+\caption{Progression and users fundable from the treasury (prototype: 0.7\,M UCN; BlockSource: 70\,M UCN)}
 \label{tab:prog}
 \footnotesize
 \setlength{\tabcolsep}{2.6pt}
@@ -393,7 +394,7 @@ Table~\ref{tab:prog} and Fig.~\ref{fig:prog} apply Proposition~\ref{prop:emissio
 \toprule
 & & & & \multicolumn{2}{c}{\textbf{Users fundable to $L$}}\\
 \cmidrule(l){5-6}
-\textbf{$L$} & \textbf{XP} & \textbf{Contrib.} & \textbf{$S(L)$ UCN} & \textbf{v1.0 (0.7\,M)} & \textbf{v1.1 (70\,M)}\\
+\textbf{$L$} & \textbf{XP} & \textbf{Contrib.} & \textbf{$S(L)$ UCN} & \textbf{Prototype} & \textbf{BlockSource}\\
 \midrule
 1 & 100 & 2 & 5.4 & 129{,}630 & 12{,}962{,}963\\
 5 & 1{,}500 & 30 & 31.7 & 22{,}096 & 2{,}209{,}621\\
@@ -429,23 +430,23 @@ Table~\ref{tab:prog} and Fig.~\ref{fig:prog} apply Proposition~\ref{prop:emissio
 %======================================================================
 
 \subsection{What the prototype taught us}
-Three lessons from v1.0 generalise to other incentive DApps. First, a limit enforced only in the user interface is not a limit: F2 and F6 both come from treating the dashboard's arithmetic as the system's rules. Second, a role that no code path exercises (\texttt{XP\_UPDATER\_ROLE}) is a sign that a component is missing, and the Sepolia history confirms it. Third, wherever a number is shown to users, it should be the number the contract will act on; v1.0's leaderboard, dashboard and contracts each had their own idea of a user's standing.
+Three lessons from the prototype generalise to other incentive DApps. First, a limit enforced only in the user interface is not a limit: F2 and F6 both come from treating the dashboard's arithmetic as the system's rules. Second, a role that no code path exercises (\texttt{XP\_UPDATER\_ROLE}) is a sign that a component is missing, and the Sepolia history confirms it. Third, wherever a number is shown to users, it should be the number the contract will act on; the prototype's leaderboard, dashboard and contracts each had their own idea of a user's standing.
 
 \subsection{Storage and decentralisation}
 Keeping XP and entitlements on chain buys auditability and lets anyone rebuild the leaderboard from events. It also makes each sync cost gas, which at 15--40\,gwei on L1 is \$0.57--1.53 per user even in batches. Two moves would cut this by one to two orders of magnitude without changing the contracts: deploying them on an optimistic or validity rollup~\cite{kalodner2018arbitrum,thibault2022rollups}, where most Ethereum activity already runs~\cite{ethorg2026}, and posting a Merkle root of all counts per sweep, with per-user proofs submitted only when a user withdraws. Rich metadata such as streaks and review text belongs in an indexer or on IPFS~\cite{benet2014ipfs}.
 
 \subsection{Quality versus quantity}\label{sec:gaming}
-A fixed 50~XP per contribution makes XP a count, and counts invite Goodhart's law~\cite{strathern1997goodhart}. Commit splitting, trivial issues, self-reviews in throwaway repositories and duplicate GitHub accounts all raise the count. Proposition~\ref{prop:yield} sharpens the concern: the yield past level~13 rises to 55~UCN per contribution at level~100, a level that takes an honest contributor decades and a script days. GitHub data is also a noisy measure of work~\cite{kalliamvakou2014perils}, and visible counters change when people work~\cite{moldon2021gamification}. v1.1 does not solve this. It makes counts public and reproducible, so abuse is visible, and it gives administrators suspension and payout review. Future versions should weight contributions by review outcome rather than count them~\cite{bacchelli2013review,gousios2014pull}, cap XP per period, index the reward schedule to the remaining treasury, and move these parameters to DAO governance~\cite{hassan2021dao,wang2019dao}. A token's value also depends on adoption, which a schedule alone does not create~\cite{cong2021tokenomics}.
+A fixed 50~XP per contribution makes XP a count, and counts invite Goodhart's law~\cite{strathern1997goodhart}. Commit splitting, trivial issues, self-reviews in throwaway repositories and duplicate GitHub accounts all raise the count. Proposition~\ref{prop:yield} sharpens the concern: the yield past level~13 rises to 55~UCN per contribution at level~100, a level that takes an honest contributor decades and a script days. GitHub data is also a noisy measure of work~\cite{kalliamvakou2014perils}, and visible counters change when people work~\cite{moldon2021gamification}. BlockSource does not solve this. It makes counts public and reproducible, so abuse is visible, and it gives administrators suspension and payout review. Future work should weight contributions by review outcome rather than count them~\cite{bacchelli2013review,gousios2014pull}, cap XP per period, index the reward schedule to the remaining treasury, and move these parameters to DAO governance~\cite{hassan2021dao,wang2019dao}. A token's value also depends on adoption, which a schedule alone does not create~\cite{cong2021tokenomics}.
 
 \subsection{Threats to validity}
-Our v1.0 evidence is a seven-user testnet deployment; it shows what the system did, not how a large community would behave. The 0.5--0.6\% gap in approval gas may come from a deployed bytecode that differs from the repository. GitHub responses in backend tests are fixtures, and we did not measure GitHub API latency. Contribution counts follow GitHub's own counting rules, which, for example, credit commits only on default branches. We ran no user study and make no claim that XP, levels or titles change contribution behaviour~\cite{hamari2014gamification,anderson2013badges}.
+Our prototype evidence is a seven-user testnet deployment; it shows what the system did, not how a large community would behave. The 0.5--0.6\% gap in approval gas may come from a deployed bytecode that differs from the repository. GitHub responses in backend tests are fixtures, and we did not measure GitHub API latency. Contribution counts follow GitHub's own counting rules, which, for example, credit commits only on default branches. We ran no user study and make no claim that XP, levels or titles change contribution behaviour~\cite{hamari2014gamification,anderson2013badges}.
 
 %======================================================================
 \section{Conclusion and Future Work}\label{sec:conclusion}
 %======================================================================
-BlockSource~1.0 demonstrated the idea of turning GitHub activity into on-chain levels and tokens, and its Sepolia record shows a team using it. It also showed where prototypes of this kind fail: the browser held the rules, the contracts held the money, and nothing connected them. Version~1.1 moves identity, XP, levels, entitlements and claims on chain, binds one GitHub account to one wallet, and replaces client-side XP with a monotonic, publicly reproducible count. The contract suite passes 71 tests with full coverage, local gas agrees with Sepolia within 0.6\%, batched syncs cost 14{,}004 gas per user, and a $10^{8}$-UCN supply funds a hundred times more contributors than v1.0's.
+The BlockSource prototype demonstrated the idea of turning GitHub activity into on-chain levels and tokens, and its Sepolia record shows a team using it. It also showed where prototypes of this kind fail: the browser held the rules, the contracts held the money, and nothing connected them. The hardened design moves identity, XP, levels, entitlements and claims on chain, binds one GitHub account to one wallet, and replaces client-side XP with a monotonic, publicly reproducible count. The contract suite passes 71 tests with full coverage, local gas agrees with Sepolia within 0.6\%, batched syncs cost 14{,}004 gas per user, and a $10^{8}$-UCN supply funds a hundred times more contributors than the prototype's.
 
-Next steps follow from the limitations: deploy v1.1 on Sepolia and then on an L2; replace the single attester with several independent oracle nodes or authenticated TLS data~\cite{zhang2016towncrier}, so that no one key decides a count; weight XP by review outcome; add GitLab and Bitbucket through a forge prefix on the account id; and put reward parameters and payout review under DAO control.
+Next steps follow from the limitations: deploy the hardened contracts on Sepolia and then on an L2; replace the single attester with several independent oracle nodes or authenticated TLS data~\cite{zhang2016towncrier}, so that no one key decides a count; weight XP by review outcome; add GitLab and Bitbucket through a forge prefix on the account id; and put reward parameters and payout review under DAO control.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
