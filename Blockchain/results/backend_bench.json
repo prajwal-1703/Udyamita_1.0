@@ -1,0 +1,1 @@
+{"attest":{"mean":6.018,"p95":8.055},"parseCount":{"mean":0.011,"p95":0.018},"batchTx100":{"mean":8.729,"p95":11.402},"cpu":"Intel Xeon @ 2.10GHz, 2 vCPU, Node 22"}
