@@ -1,5 +1,5 @@
 {
-  "name": "udyamita-blockchain",
+  "name": "blocksource-blockchain",
   "private": true,
   "scripts": {
     "compile": "hardhat compile",

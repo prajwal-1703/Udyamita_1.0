@@ -1,6 +1,6 @@
 {
   "deploy": {
-    "userDatabase": 2281326,
+    "userDatabase": 2281374,
     "rewardMechanismWithUCoin": 1533483
   },
   "register_first": 146059,
@@ -18,20 +18,20 @@
       "perUser": 43414
     },
     "10": {
-      "total": 166719,
-      "perUser": 16672
+      "total": 166743,
+      "perUser": 16674
     },
     "50": {
-      "total": 714935,
-      "perUser": 14299
+      "total": 714923,
+      "perUser": 14298
     },
     "100": {
-      "total": 1400376,
+      "total": 1400448,
       "perUser": 14004
     },
     "200": {
-      "total": 2772602,
-      "perUser": 13863
+      "total": 2772710,
+      "perUser": 13864
     }
   },
   "request_pending": 55767,

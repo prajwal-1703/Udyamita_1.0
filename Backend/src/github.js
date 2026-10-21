@@ -16,7 +16,7 @@ const KINDS = [
 
 class GitHubError extends Error {}
 
-function makeClient({ token, fetchImpl = fetch, userAgent = "udyamita-backend/1.1" }) {
+function makeClient({ token, fetchImpl = fetch, userAgent = "blocksource-backend/1.1" }) {
   const headers = { Authorization: `Bearer ${token}`, "User-Agent": userAgent, Accept: "application/vnd.github+json" };
 
   async function rest(path) {

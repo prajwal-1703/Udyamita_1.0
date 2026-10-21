@@ -72,7 +72,7 @@ contract UserDatabase is AccessControl, EIP712 {
     error LengthMismatch();
 
     constructor(address admin, address attester, address xpUpdater, uint256 rewardBudget_)
-        EIP712("Udyamita", "1.1")
+        EIP712("BlockSource", "1.1")
     {
         require(admin != address(0) && attester != address(0) && xpUpdater != address(0), "UD: zero address");
         _grantRole(DEFAULT_ADMIN_ROLE, admin);

@@ -1,4 +1,4 @@
-# Udyamita 1.0 — audit and what v1.1 changes
+# BlockSource 1.0 — audit and what v1.1 changes
 
 Scope: `Blockchain/contracts/*.sol`, `Frontend/server.js`, `Frontend/src/**` at commit `22c0442`,
 and the three contracts deployed on Sepolia in April 2025:

@@ -16,7 +16,7 @@ async function main() {
     rewardMechanismWithUCoin: Number((await rm.deploymentTransaction().wait()).gasUsed),
   } };
   const net = await ethers.provider.getNetwork();
-  const domain = { name: "Udyamita", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
+  const domain = { name: "BlockSource", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
   const types = { Bind: [{ name: "wallet", type: "address" }, { name: "githubId", type: "uint64" }, { name: "login", type: "string" }, { name: "deadline", type: "uint256" }] };
   let nextId = 1000;
   const newUser = async () => {

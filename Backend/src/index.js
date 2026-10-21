@@ -9,7 +9,7 @@ const github = makeClient({ token: config.github.apiToken });
 const chain = makeChain({ ...config.chain });
 const app = createApp({ config, github, chain });
 
-app.listen(config.port, () => console.log(`Udyamita backend on :${config.port}`));
+app.listen(config.port, () => console.log(`BlockSource backend on :${config.port}`));
 
 let running = false;
 async function tick() {

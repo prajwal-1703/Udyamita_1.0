@@ -21,7 +21,7 @@ const BIND_TYPES = {
 };
 
 function bindDomain(chainId, userDatabase) {
-  return { name: "Udyamita", version: "1.1", chainId, verifyingContract: userDatabase };
+  return { name: "BlockSource", version: "1.1", chainId, verifyingContract: userDatabase };
 }
 
 /** Signs Bind(wallet, githubId, login, deadline) with the attester key. */

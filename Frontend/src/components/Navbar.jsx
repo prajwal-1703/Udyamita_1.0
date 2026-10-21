@@ -39,7 +39,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0 cursor-pointer" onClick={() => navigate("/")}>
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-purple-700">
-              Udyamita
+              BlockSource
             </h1>
           </div>
 

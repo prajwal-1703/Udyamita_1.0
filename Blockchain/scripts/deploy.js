@@ -1,4 +1,4 @@
-// Deploys Udyamita v1.1: UserDatabase, then RewardMechanism (which deploys and funds UCoin).
+// Deploys BlockSource v1.1: UserDatabase, then RewardMechanism (which deploys and funds UCoin).
 // Writes deployments/<network>.json and copies ABIs into Frontend/src/abis.
 //
 // Environment (.env):

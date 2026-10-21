@@ -38,7 +38,7 @@
 \maketitle
 
 \begin{abstract}
-Open-source software (OSS) underpins nearly every commercial software stack, yet most maintainers are unpaid and recognition is decided by a few grant committees and sponsors. Existing mechanisms do not close the gap: Gitcoin's quadratic-funding rounds are periodic, Coordinape's peer allocation inherits popularity bias, SourceCred's graph scores are opaque, and Google Summer of Code is seasonal. This paper reports on BlockSource (Udyamita), a system that converts GitHub activity into Experience Points (XP), 100 levels and UCoin (UCN) ERC-20 rewards on Ethereum. We deployed a first version on the Sepolia testnet in April 2025 and use its public transaction record as ground truth. An audit of that deployment found that withdrawal requests were not tied to earned rewards, any wallet could claim any GitHub username, XP was computed in the browser and never reached the chain, claimed amounts were kept in \texttt{localStorage}, and the OAuth client secret was committed to the repository. Version~1.1 binds a numeric GitHub id to one wallet through an EIP-712 attestation, synchronises a monotonic all-time count of public contributions, computes levels and rewards ($5 \cdot 1.08^{L}$ UCN at level $L$) on chain, and caps withdrawals at the on-chain entitlement. Local gas measurements of the v1.0 sources match Sepolia receipts to within 0.6\%. In v1.1 a batched sync costs 14{,}004 gas per user, a withdrawal request 18\% less than in v1.0, and a first payout 35\% more because claims are now recorded on chain. At 2026's typical 0.5\,gwei base fee every user operation costs under US\$0.18; at 15--40\,gwei the same operations cost US\$0.57--14. We also show that v1.0's 1{,}000{,}001-UCN supply could fund only 4.7 contributors to level~100.
+Open-source software (OSS) underpins nearly every commercial software stack, yet most maintainers are unpaid and recognition is decided by a few grant committees and sponsors. Existing mechanisms do not close the gap: Gitcoin's quadratic-funding rounds are periodic, Coordinape's peer allocation inherits popularity bias, SourceCred's graph scores are opaque, and Google Summer of Code is seasonal. This paper reports on BlockSource, a system that converts GitHub activity into Experience Points (XP), 100 levels and UCoin (UCN) ERC-20 rewards on Ethereum. We deployed a first version on the Sepolia testnet in April 2025 and use its public transaction record as ground truth. An audit of that deployment found that withdrawal requests were not tied to earned rewards, any wallet could claim any GitHub username, XP was computed in the browser and never reached the chain, claimed amounts were kept in \texttt{localStorage}, and the OAuth client secret was committed to the repository. Version~1.1 binds a numeric GitHub id to one wallet through an EIP-712 attestation, synchronises a monotonic all-time count of public contributions, computes levels and rewards ($5 \cdot 1.08^{L}$ UCN at level $L$) on chain, and caps withdrawals at the on-chain entitlement. Local gas measurements of the v1.0 sources match Sepolia receipts to within 0.6\%. In v1.1 a batched sync costs 14{,}004 gas per user, a withdrawal request 18\% less than in v1.0, and a first payout 35\% more because claims are now recorded on chain. At 2026's typical 0.5\,gwei base fee every user operation costs under US\$0.18; at 15--40\,gwei the same operations cost US\$0.57--14. We also show that v1.0's 1{,}000{,}001-UCN supply could fund only 4.7 contributors to level~100.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -97,7 +97,7 @@ Bountysource~\cite{zhou2021bounty} & Per issue & Backer acceptance & Centralised
 \subsection{Contributions}
 This paper is a report on a working system rather than a proposal. It makes four contributions.
 \begin{enumerate}
-\item \textbf{A deployed baseline and its audit.} We describe Udyamita~1.0 as it was built and deployed on Sepolia, use its on-chain history as evidence, and reproduce each weakness with an executable test (Sec.~\ref{sec:v1}).
+\item \textbf{A deployed baseline and its audit.} We describe BlockSource~1.0 as it was built and deployed on Sepolia, use its on-chain history as evidence, and reproduce each weakness with an executable test (Sec.~\ref{sec:v1}).
 \item \textbf{A hardened design (v1.1)} with an EIP-712 identity binding~\cite{eip712}, a monotonic count-based XP sync that is idempotent by construction, and withdrawals capped by on-chain entitlement (Sec.~\ref{sec:design}).
 \item \textbf{A closed-form progression and reward model} using the parameters actually shipped, with an exact integer level inverse, emission bounds for both token supplies, and the per-contribution yield (Sec.~\ref{sec:math}).
 \item \textbf{An evaluation} that validates local gas measurement against Sepolia receipts and then compares v1.0 and v1.1 on gas, throughput, latency and treasury capacity (Sec.~\ref{sec:eval}).
@@ -105,7 +105,7 @@ This paper is a report on a working system rather than a proposal. It makes four
 Section~\ref{sec:discussion} discusses limitations and Section~\ref{sec:conclusion} concludes.
 
 %======================================================================
-\section{Udyamita 1.0: Deployment and Audit}\label{sec:v1}
+\section{BlockSource 1.0: Deployment and Audit}\label{sec:v1}
 %======================================================================
 
 \subsection{Architecture as built}
@@ -138,7 +138,7 @@ We audited the repository at its initial commit and the deployed contracts. Tabl
 
 \begin{table*}[t]
 \centering
-\caption{Audit of Udyamita 1.0 and the corresponding change in v1.1}
+\caption{Audit of BlockSource 1.0 and the corresponding change in v1.1}
 \label{tab:audit}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -166,7 +166,7 @@ M1 & Low & Reviewer rule differs between UI ($>$50 contributions), README (15{,}
 The two critical findings matter most. Because \texttt{RewardMechanism} never consults \texttt{UserDatabase}, the dashboard's ``Max Requestable'' limit is a convenience, not a control: our test F2 drains the full 700{,}000.7~UCN treasury from an unregistered wallet with one request and one approval. On Sepolia the owner approved every request seen, which is safe only while the owner recognises every user. The committed OAuth secret lets anyone impersonate the application to GitHub users, and combined with the \texttt{repo} scope it could have been used to request write access to their private repositories. Neither finding needs a clever attacker.
 
 %======================================================================
-\section{Udyamita 1.1: Design}\label{sec:design}
+\section{BlockSource 1.1: Design}\label{sec:design}
 %======================================================================
 
 \subsection{Roles, trust model and access control}\label{sec:trust}
@@ -258,11 +258,11 @@ Fig.~\ref{fig:arch} shows v1.1. The Express server of v1.0 becomes a backend ser
 \draw[arr, dashed] (db.east) -- ++(0.3,0) |- (rm.east);
 \draw[arr, dashed] (tok.south) -- ++(0,-1.75) -| node[num, pos=0.25, below]{contract events $\rightarrow$ UI refresh} (ui.south);
 \end{tikzpicture}}
-\caption{Udyamita v1.1. (1) The wallet connects. (2) GitHub OAuth establishes the numeric account id; the token is discarded. (3) The backend signs a binding attestation. (4) The user calls \texttt{register} from the wallet; withdrawals are also sent from the wallet. (5) The sync job counts all-time public contributions and (6) submits \texttt{syncXP}/\texttt{syncXPBatch}. (7) \texttt{RewardMechanism} reads \emph{earned} from \texttt{UserDatabase} (dashed) and pays from the UCoin treasury it deployed. Contract events refresh the UI.}
+\caption{BlockSource v1.1. (1) The wallet connects. (2) GitHub OAuth establishes the numeric account id; the token is discarded. (3) The backend signs a binding attestation. (4) The user calls \texttt{register} from the wallet; withdrawals are also sent from the wallet. (5) The sync job counts all-time public contributions and (6) submits \texttt{syncXP}/\texttt{syncXPBatch}. (7) \texttt{RewardMechanism} reads \emph{earned} from \texttt{UserDatabase} (dashed) and pays from the UCoin treasury it deployed. Contract events refresh the UI.}
 \label{fig:arch}
 \end{figure*}
 
-\textit{Identity binding.} After OAuth, the backend knows the user's immutable numeric GitHub id and current login. On request it signs $\mathrm{Bind}(\mathit{wallet}, \mathit{githubId}, \mathit{login}, \mathit{deadline})$ with the attester key under the EIP-712 domain (\texttt{Udyamita}, \texttt{1.1}, chain id, contract address). The user submits \texttt{register} from the named wallet. The contract recovers the signer, checks \texttt{ATTESTER\_ROLE}, and rejects a second wallet for the id or a second id for the wallet. Because \texttt{msg.sender} is inside the signed message, an attestation seen in the mempool cannot be replayed from another wallet; the deadline (10 minutes by default) limits the damage of a leaked signature; and revoking the attester role voids all outstanding attestations. This closes F3 for accounts, though one person can still own several GitHub accounts~\cite{douceur2002sybil,siddarth2020watchmen}.
+\textit{Identity binding.} After OAuth, the backend knows the user's immutable numeric GitHub id and current login. On request it signs $\mathrm{Bind}(\mathit{wallet}, \mathit{githubId}, \mathit{login}, \mathit{deadline})$ with the attester key under the EIP-712 domain (\texttt{BlockSource}, \texttt{1.1}, chain id, contract address). The user submits \texttt{register} from the named wallet. The contract recovers the signer, checks \texttt{ATTESTER\_ROLE}, and rejects a second wallet for the id or a second id for the wallet. Because \texttt{msg.sender} is inside the signed message, an attestation seen in the mempool cannot be replayed from another wallet; the deadline (10 minutes by default) limits the damage of a leaked signature; and revoking the attester role voids all outstanding attestations. This closes F3 for accounts, though one person can still own several GitHub accounts~\cite{douceur2002sybil,siddarth2020watchmen}.
 
 \textit{Counting contributions.} The sync job resolves the current login from the id (\texttt{GET /user/\{id\}}, so renames are harmless), then sends one GraphQL request with one aliased \texttt{contributionsCollection} per calendar year since the account was created, because a collection spans at most a year~\cite{githubdocs}. It sums \texttt{totalCommitContributions}, \texttt{totalIssueContributions}, \texttt{totalPullRequestContributions} and \texttt{totalPullRequestReviewContributions}. Only public contributions are counted, with a server token that has no scopes, so the number does not depend on whose token is used (X1) and anyone can reproduce it. The login is passed as a GraphQL variable (X3).
 
@@ -346,7 +346,7 @@ Reject & 29{,}222 & 26{,}449 & $-$9.5\% & 0.04 & 1.08 & 2.88\\
   scaled y ticks=false, grid=major, grid style={gray!25},
   legend style={font=\scriptsize, at={(0.98,0.97)}, anchor=north east},
   tick label style={font=\scriptsize}, label style={font=\footnotesize}]
-\addplot[thick, mark=*, mark size=1.5pt] coordinates {(1,43414)(10,16672)(50,14299)(100,14004)(200,13863)};
+\addplot[thick, mark=*, mark size=1.5pt] coordinates {(1,43414)(10,16674)(50,14298)(100,14004)(200,13864)};
 \addlegendentry{\texttt{syncXPBatch} (each user levels up)}
 \addplot[dashed, domain=0.8:260] {50731};
 \addlegendentry{v1.0 \texttt{updateUserXP} (no level logic)}
@@ -443,7 +443,7 @@ Our v1.0 evidence is a seven-user testnet deployment; it shows what the system d
 %======================================================================
 \section{Conclusion and Future Work}\label{sec:conclusion}
 %======================================================================
-Udyamita~1.0 demonstrated the idea of turning GitHub activity into on-chain levels and tokens, and its Sepolia record shows a team using it. It also showed where prototypes of this kind fail: the browser held the rules, the contracts held the money, and nothing connected them. Version~1.1 moves identity, XP, levels, entitlements and claims on chain, binds one GitHub account to one wallet, and replaces client-side XP with a monotonic, publicly reproducible count. The contract suite passes 71 tests with full coverage, local gas agrees with Sepolia within 0.6\%, batched syncs cost 14{,}004 gas per user, and a $10^{8}$-UCN supply funds a hundred times more contributors than v1.0's.
+BlockSource~1.0 demonstrated the idea of turning GitHub activity into on-chain levels and tokens, and its Sepolia record shows a team using it. It also showed where prototypes of this kind fail: the browser held the rules, the contracts held the money, and nothing connected them. Version~1.1 moves identity, XP, levels, entitlements and claims on chain, binds one GitHub account to one wallet, and replaces client-side XP with a monotonic, publicly reproducible count. The contract suite passes 71 tests with full coverage, local gas agrees with Sepolia within 0.6\%, batched syncs cost 14{,}004 gas per user, and a $10^{8}$-UCN supply funds a hundred times more contributors than v1.0's.
 
 Next steps follow from the limitations: deploy v1.1 on Sepolia and then on an L2; replace the single attester with several independent oracle nodes or authenticated TLS data~\cite{zhang2016towncrier}, so that no one key decides a count; weight XP by review outcome; add GitLab and Bitbucket through a forge prefix on the account id; and put reward parameters and payout review under DAO control.
 

@@ -1,4 +1,6 @@
-# BlockSource: Code to Crypto (Udyamita)
+# BlockSource: Code to Crypto
+
+_Repository: `Udyamita_1.0`_
 
 Rewards open-source contributors with on-chain XP, levels and UCoin (UCN), an ERC-20 token on
 Ethereum Sepolia. A contributor proves who they are on GitHub, binds that account to a wallet,

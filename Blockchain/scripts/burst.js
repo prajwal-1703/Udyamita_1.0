@@ -8,7 +8,7 @@ async function setup(N) {
   const [admin, attester, updater, dev] = await ethers.getSigners();
   const db = await (await ethers.getContractFactory("UserDatabase")).deploy(admin.address, attester.address, updater.address, E(70_000_000));
   const net = await ethers.provider.getNetwork();
-  const domain = { name: "Udyamita", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
+  const domain = { name: "BlockSource", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
   const types = { Bind: [{ name: "wallet", type: "address" }, { name: "githubId", type: "uint64" }, { name: "login", type: "string" }, { name: "deadline", type: "uint256" }] };
   const users = [];
   for (let i = 0; i < N; i++) {

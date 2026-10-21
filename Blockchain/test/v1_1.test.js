@@ -11,7 +11,7 @@ async function deploy() {
   const rm = await (await ethers.getContractFactory("RewardMechanism")).deploy(await db.getAddress(), dev.address);
   const ucn = await ethers.getContractAt("UCoin", await rm.rewardToken());
   const net = await ethers.provider.getNetwork();
-  const domain = { name: "Udyamita", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
+  const domain = { name: "BlockSource", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
   const types = { Bind: [
     { name: "wallet", type: "address" }, { name: "githubId", type: "uint64" },
     { name: "login", type: "string" }, { name: "deadline", type: "uint256" }] };
@@ -403,7 +403,7 @@ describe("Solvency", () => {
     const [admin, attester, updater, dev] = await ethers.getSigners();
     const db = await (await ethers.getContractFactory("UserDatabase")).deploy(admin.address, attester.address, updater.address, E(300));
     const net = await ethers.provider.getNetwork();
-    const domain = { name: "Udyamita", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
+    const domain = { name: "BlockSource", version: "1.1", chainId: net.chainId, verifyingContract: await db.getAddress() };
     const types = { Bind: [{ name: "wallet", type: "address" }, { name: "githubId", type: "uint64" }, { name: "login", type: "string" }, { name: "deadline", type: "uint256" }] };
     const users = [];
     for (let i = 0; i < 3; i++) {
