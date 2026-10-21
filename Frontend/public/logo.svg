@@ -1,0 +1,20 @@
+<svg width="176" height="176" viewBox="0 0 176 176" xmlns="http://www.w3.org/2000/svg">
+    <!-- Circular White Background -->
+    <circle cx="88" cy="88" r="88" fill="white"/>
+
+    <!-- Gradient -->
+    <defs>
+        <linearGradient id="blackPurple" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#000000"/>
+            <stop offset="100%" stop-color="#8e2de2"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Centered & Smooth U Shape -->
+    <path d="M64 48 v55 a24 24 0 0 0 48 0 v-55" 
+          stroke="url(#blackPurple)" 
+          stroke-width="36" 
+          fill="none" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+</svg>
