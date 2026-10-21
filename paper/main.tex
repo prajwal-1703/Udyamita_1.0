@@ -246,7 +246,7 @@ Fig.~\ref{fig:arch} shows the architecture. The prototype's Express server becom
 \begin{scope}[on background layer]
 \node[lay, fit=(user)(mm)(ui), label={[font=\scriptsize\bfseries]below:Frontend (Vite/React)}] {};
 \node[lay, fit=(oauth)(att)(sync), label={[font=\scriptsize\bfseries]above:Backend (Node.js/Express)}] {};
-\node[lay, fit=(db)(rm)(tok), label={[font=\scriptsize\bfseries, xshift=8mm]above:Sepolia contracts}] {};
+\node[lay, fit=(db)(rm)(tok), label={[font=\scriptsize\bfseries, xshift=-15mm]above:Sepolia contracts}] {};
 \end{scope}
 \draw[arr] (user) |- node[num, pos=0.75, above]{1} (mm.west);
 \draw[arr] (user) |- (ui.west);
