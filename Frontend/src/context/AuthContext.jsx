@@ -1,100 +1,88 @@
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { ethers } from "ethers";
+import { contracts, readProvider } from "@/lib/chain";
+import { contractsConfigured } from "@/config";
+import { api } from "@/lib/api";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ethers } from 'ethers';
-import UserDatabaseABI from '../abis/UserDatabase.json';
-
-const AuthContext = createContext();
-
+const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
-// Hardcoded for now, should ideally be in env but client-side logic needs it
-const USER_DB_ADDRESS = "0xe92cFff8436007F804F2ec05AF83851AD3dA9945";
-
+/**
+ * Two identities, kept separate:
+ *  - wallet: from MetaMask
+ *  - github: from the backend's OAuth session cookie (v1.0 kept a GitHub token in localStorage)
+ * plus the on-chain profile that binds them.
+ */
 export const AuthProvider = ({ children }) => {
-    const [currentUser, setCurrentUser] = useState(null); // { wallet, username, ... }
-    const [loading, setLoading] = useState(true);
-    const [isConnected, setIsConnected] = useState(false);
+  const [wallet, setWallet] = useState(null);
+  const [github, setGithub] = useState(null);     // { githubId, login, avatarUrl, wallet }
+  const [profile, setProfile] = useState(null);   // on-chain UserDatabase.User or null
+  const [loading, setLoading] = useState(true);
 
-    // Initialize wallet connection on load
-    useEffect(() => {
-        checkConnection();
-    }, []);
-
-    const checkConnection = async () => {
-        if (typeof window.ethereum !== 'undefined') {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts.length > 0) {
-                    handleUserLogin(accounts[0]);
-                } else {
-                    setLoading(false);
-                }
-            } catch (err) {
-                console.error("Connection check failed", err);
-                setLoading(false);
-            }
-        } else {
-            setLoading(false);
-        }
+  const loadProfile = useCallback(async (addr) => {
+    if (!addr || !contractsConfigured()) { setProfile(null); return null; }
+    const { userDatabase } = contracts(readProvider());
+    if (!(await userDatabase.isRegistered(addr))) { setProfile(null); return null; }
+    const u = await userDatabase.getUser(addr);
+    const p = {
+      githubId: u.githubId.toString(), xp: Number(u.xp), level: Number(u.level),
+      earned: u.earned, lastSync: Number(u.lastSync), suspended: u.suspended,
+      login: await userDatabase.loginOf(addr),
     };
+    setProfile(p);
+    return p;
+  }, []);
 
-    const login = async () => {
-        if (typeof window.ethereum === 'undefined') {
-            alert("Please install MetaMask!");
-            return;
+  const loadGithub = useCallback(async () => {
+    try { setGithub(await api.me()); } catch { setGithub(null); }
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([loadGithub(), loadProfile(wallet)]);
+  }, [loadGithub, loadProfile, wallet]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (window.ethereum) {
+          const accounts = await window.ethereum.request({ method: "eth_accounts" });
+          if (accounts[0]) setWallet(ethers.getAddress(accounts[0]));
         }
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            await handleUserLogin(accounts[0]);
-            return true;
-        } catch (error) {
-            console.error("Login failed:", error);
-            return false;
-        }
+        await loadGithub();
+      } finally {
+        setLoading(false);
+      }
+    })();
+    if (!window.ethereum) return undefined;
+    const onAccounts = (accs) => setWallet(accs[0] ? ethers.getAddress(accs[0]) : null);
+    const onChain = () => window.location.reload();
+    window.ethereum.on?.("accountsChanged", onAccounts);
+    window.ethereum.on?.("chainChanged", onChain);
+    return () => {
+      window.ethereum.removeListener?.("accountsChanged", onAccounts);
+      window.ethereum.removeListener?.("chainChanged", onChain);
     };
+  }, [loadGithub]);
 
-    const logout = () => {
-        setCurrentUser(null);
-        setIsConnected(false);
-        // MetaMask doesn't strictly "disconnect", but we clear our app state
-    };
+  useEffect(() => { loadProfile(wallet).catch(() => setProfile(null)); }, [wallet, loadProfile]);
 
-    const handleUserLogin = async (walletAddress) => {
-        try {
-            setLoading(true);
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const contract = new ethers.Contract(USER_DB_ADDRESS, UserDatabaseABI.abi, provider);
+  const connectWallet = async () => {
+    if (!window.ethereum) throw new Error("Please install MetaMask.");
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    setWallet(ethers.getAddress(accounts[0]));
+  };
 
-            // Fetch User Details from Contract
-            let userData = { wallet: walletAddress, isRegistered: false };
+  const connectGithub = () => { window.location.href = api.githubLoginUrl(); };
+  const disconnectGithub = async () => { await api.logout().catch(() => {}); setGithub(null); };
 
-            try {
-                const userStruct = await contract.getUser(walletAddress);
-                // If call succeeds, user exists
-                userData = {
-                    wallet: walletAddress,
-                    username: userStruct.username,
-                    xp: Number(userStruct.xp),
-                    isRegistered: true
-                };
-            } catch (err) {
-                // Expected if user doesn't exist (assuming contract reverts or returns empty)
-                // Check if error is "User does not exist" or similar
-                console.log("User might be new or fetch failed:", err);
-            }
-
-            setCurrentUser(userData);
-            setIsConnected(true);
-        } catch (error) {
-            console.error("Error fetching user details:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <AuthContext.Provider value={{ currentUser, isConnected, login, logout, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider value={{
+      wallet, github, profile, loading,
+      connectWallet, connectGithub, disconnectGithub, refresh, loadProfile,
+      // v1.0 compatibility for components that read currentUser/login
+      currentUser: wallet ? { wallet } : null, isConnected: !!wallet, login: connectWallet,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

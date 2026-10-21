@@ -1,0 +1,80 @@
+{
+  "30000000/per-user": {
+    "gasLimit": 30000000,
+    "mode": "per-user",
+    "txs": 500,
+    "blocks": 1,
+    "perBlock": [
+      500
+    ],
+    "totalGas": 16816984,
+    "gasPerUser": 33634,
+    "checkXp": 850,
+    "checkLevel": 3
+  },
+  "30000000/batch-100": {
+    "gasLimit": 30000000,
+    "mode": "batch-100",
+    "txs": 5,
+    "blocks": 1,
+    "perBlock": [
+      5
+    ],
+    "totalGas": 5218883,
+    "gasPerUser": 10438,
+    "checkXp": 850,
+    "checkLevel": 3
+  },
+  "36000000/per-user": {
+    "gasLimit": 36000000,
+    "mode": "per-user",
+    "txs": 500,
+    "blocks": 1,
+    "perBlock": [
+      500
+    ],
+    "totalGas": 16817032,
+    "gasPerUser": 33634,
+    "checkXp": 850,
+    "checkLevel": 3
+  },
+  "36000000/batch-100": {
+    "gasLimit": 36000000,
+    "mode": "batch-100",
+    "txs": 5,
+    "blocks": 1,
+    "perBlock": [
+      5
+    ],
+    "totalGas": 5218607,
+    "gasPerUser": 10437,
+    "checkXp": 850,
+    "checkLevel": 3
+  },
+  "60000000/per-user": {
+    "gasLimit": 60000000,
+    "mode": "per-user",
+    "txs": 500,
+    "blocks": 1,
+    "perBlock": [
+      500
+    ],
+    "totalGas": 16817092,
+    "gasPerUser": 33634,
+    "checkXp": 850,
+    "checkLevel": 3
+  },
+  "60000000/batch-100": {
+    "gasLimit": 60000000,
+    "mode": "batch-100",
+    "txs": 5,
+    "blocks": 1,
+    "perBlock": [
+      5
+    ],
+    "totalGas": 5218835,
+    "gasPerUser": 10438,
+    "checkXp": 850,
+    "checkLevel": 3
+  }
+}

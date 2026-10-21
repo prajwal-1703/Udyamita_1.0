@@ -1,121 +1,29 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
-interface IERC20 {
-    function totalSupply() external view returns (uint);
-    function balanceOf(address account) external view returns (uint);
-    function transfer(address recipient, uint amount) external returns (bool);
-    function approve(address spender, uint amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint);
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-    event Transfer(address indexed from, address indexed to, uint value);
-    event Approval(address indexed owner, address indexed spender, uint value);
-}
+/// @title UCoin (UCN) — v1.1
+/// @notice Fixed-supply ERC-20. The whole supply is minted once in the constructor:
+///         70% to the reward treasury (the RewardMechanism contract that deploys this token)
+///         and 30% to the developer wallet. There is no mint or owner function, so the
+///         supply can never change after deployment.
+/// @dev v1.0 used a hand-written ERC-20 with 1,000,001 UCN. v1.1 uses OpenZeppelin's audited
+///      implementation and 100,000,000 UCN so that the treasury can fund the reward schedule
+///      for a realistic number of contributors (see docs/ECONOMICS.md).
+contract UCoin is ERC20 {
+    uint256 public constant TOTAL_SUPPLY = 100_000_000e18;
+    uint256 public constant TREASURY_SHARE = 70_000_000e18;
+    uint256 public constant DEV_SHARE = TOTAL_SUPPLY - TREASURY_SHARE;
 
-contract UCoin is IERC20 {
-    string public constant symbol = "UCN";
-    string public constant name = "UCoin";
-    uint8 public constant decimals = 18;
-    uint public immutable _totalSupply;
-
-    address public immutable owner;
-    address public immutable rewardTreasury;  // ✅ Store rewards separately
+    address public immutable rewardTreasury;
     address public immutable devWallet;
 
-    mapping(address => uint) private balances;
-    mapping(address => mapping(address => uint)) private allowances;
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not the contract owner");
-        _;
-    }
-
-    constructor(address _rewardTreasury, address _devWallet) {
-        require(_rewardTreasury != address(0), "Invalid reward treasury address");
-        require(_devWallet != address(0), "Invalid dev wallet address");
-
-        owner = msg.sender;
-        rewardTreasury = _rewardTreasury;
-        devWallet = _devWallet;
-
-        _totalSupply = 1_000_001 * (10 ** uint(decimals));
-
-        uint rewardSupply = (_totalSupply * 70) / 100;  // 70% for rewards
-        uint devSupply = _totalSupply - rewardSupply;   // 30% for dev wallet
-
-        balances[rewardTreasury] = rewardSupply;
-        balances[devWallet] = devSupply;
-
-        emit Transfer(address(0), rewardTreasury, rewardSupply);
-        emit Transfer(address(0), devWallet, devSupply);
-    }
-
-    function totalSupply() public view override returns (uint) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) public view override returns (uint) {
-        return balances[account];
-    }
-
-    function transfer(address recipient, uint amount) public override returns (bool) {
-        require(recipient != address(0), "Invalid recipient");
-        require(balances[msg.sender] >= amount, "Insufficient balance");
-
-        unchecked {
-            balances[msg.sender] -= amount;
-            balances[recipient] += amount;
-        }
-
-        emit Transfer(msg.sender, recipient, amount);
-        return true;
-    }
-
-    function approve(address spender, uint amount) public override returns (bool) {
-        require(spender != address(0), "Invalid spender");
-
-        allowances[msg.sender][spender] = amount;
-        emit Approval(msg.sender, spender, amount);
-        return true;
-    }
-
-    function transferFrom(address sender, address recipient, uint amount) public override returns (bool) {
-        require(recipient != address(0), "Invalid recipient");
-        require(balances[sender] >= amount, "Insufficient balance");
-        require(allowances[sender][msg.sender] >= amount, "Allowance exceeded");
-
-        unchecked {
-            balances[sender] -= amount;
-            allowances[sender][msg.sender] -= amount;
-            balances[recipient] += amount;
-        }
-
-        emit Transfer(sender, recipient, amount);
-        return true;
-    }
-
-    function allowance(address _owner, address spender) public view override returns (uint) {
-        return allowances[_owner][spender];
-    }
-
-    function increaseAllowance(address spender, uint addedValue) public returns (bool) {
-        require(spender != address(0), "Invalid spender");
-
-        allowances[msg.sender][spender] += addedValue;
-        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
-        return true;
-    }
-
-    function decreaseAllowance(address spender, uint subtractedValue) public returns (bool) {
-        require(spender != address(0), "Invalid spender");
-        require(allowances[msg.sender][spender] >= subtractedValue, "Decreased allowance below zero");
-
-        unchecked {
-            allowances[msg.sender][spender] -= subtractedValue;
-        }
-
-        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
-        return true;
+    constructor(address rewardTreasury_, address devWallet_) ERC20("UCoin", "UCN") {
+        require(rewardTreasury_ != address(0) && devWallet_ != address(0), "UCoin: zero address");
+        rewardTreasury = rewardTreasury_;
+        devWallet = devWallet_;
+        _mint(rewardTreasury_, TREASURY_SHARE);
+        _mint(devWallet_, DEV_SHARE);
     }
 }

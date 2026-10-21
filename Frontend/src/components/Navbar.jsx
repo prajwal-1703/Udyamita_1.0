@@ -7,45 +7,15 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const [isDark, setIsDark] = useState(false);
-  const [isGithubConnected, setIsGithubConnected] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isConnected, currentUser, login } = useAuth();
+  const { wallet, github, connectWallet, connectGithub, disconnectGithub } = useAuth();
 
   useEffect(() => {
-    // Check if URL has token or OAuth code from callback
-    const queryParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = queryParams.get("token");
-    const codeFromUrl = queryParams.get("code");
-
-    if (tokenFromUrl) {
-      localStorage.setItem("github_token", tokenFromUrl);
-      setIsGithubConnected(true);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      toast({ title: "Connected", description: "GitHub connected successfully!" });
-    } else if (codeFromUrl) {
-      fetch("/api/auth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: codeFromUrl }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.access_token) {
-            localStorage.setItem("github_token", data.access_token);
-            setIsGithubConnected(true);
-            window.history.replaceState({}, document.title, window.location.pathname);
-            toast({ title: "Connected", description: "GitHub connected successfully!" });
-            window.location.reload();
-          }
-        })
-        .catch((err) => console.error("Code exchange failed:", err));
-    } else {
-      const savedGithubToken = localStorage.getItem("github_token");
-      if (savedGithubToken) {
-        setIsGithubConnected(true);
-      }
-    }
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("github") === "linked") toast({ title: "GitHub connected", description: "Your GitHub identity was verified." });
+    if (q.get("error")) toast({ variant: "destructive", title: "GitHub sign-in failed", description: q.get("error") });
+    if (q.get("github") || q.get("error")) window.history.replaceState({}, document.title, window.location.pathname);
   }, [toast]);
 
   const toggleTheme = () => {
@@ -53,23 +23,14 @@ export default function Navbar() {
     document.documentElement.classList.toggle("dark");
   };
 
-  const connectWallet = async () => {
-    if (!isConnected) {
-      await login();
-    }
+  const onWallet = async () => {
+    try { if (!wallet) await connectWallet(); }
+    catch (e) { toast({ variant: "destructive", title: "Wallet", description: e.message }); }
   };
 
-  const handleGithubConnection = () => {
-    if (isGithubConnected) {
-      // Disconnect
-      localStorage.removeItem("github_token");
-      setIsGithubConnected(false);
-      toast({ title: "Disconnected", description: "GitHub disconnected." });
-      window.location.reload();
-    } else {
-      // Connect using GitHub OAuth
-      window.location.href = "/auth/github";
-    }
+  const handleGithubConnection = async () => {
+    if (github) { await disconnectGithub(); toast({ title: "Disconnected", description: "GitHub session ended." }); }
+    else connectGithub();
   };
 
   return (
@@ -98,23 +59,21 @@ export default function Navbar() {
             <Button
               variant="outline"
               className="flex items-center space-x-2 bg-primary/10 hover:bg-primary/20 border-primary/20"
-              onClick={connectWallet}
+              onClick={onWallet}
             >
               <Wallet className="h-5 w-5" />
               <span>
-                {isConnected && currentUser?.wallet
-                  ? `${currentUser.wallet.slice(0, 6)}...${currentUser.wallet.slice(-4)}`
-                  : "Connect Wallet"}
+                {wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : "Connect Wallet"}
               </span>
             </Button>
 
             <Button
-              variant={isGithubConnected ? "default" : "outline"}
+              variant={github ? "default" : "outline"}
               className="flex items-center space-x-2 border-primary/20"
               onClick={handleGithubConnection}
             >
               <Github className="h-5 w-5" />
-              <span>{isGithubConnected ? "Disconnect GitHub" : "Connect GitHub"}</span>
+              <span>{github ? `@${github.login}` : "Connect GitHub"}</span>
             </Button>
           </div>
         </div>

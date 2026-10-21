@@ -58,3 +58,11 @@ node_modules
 
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
+
+# Hardhat (subfolder)
+Blockchain/cache
+Blockchain/artifacts
+Blockchain/coverage
+Blockchain/coverage.json
+Blockchain/deployments/hardhat.json
+Blockchain/deployments/localhost.json

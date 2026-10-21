@@ -1,0 +1,51 @@
+{
+  "deploy": {
+    "userDatabase": 2281326,
+    "rewardMechanismWithUCoin": 1533483
+  },
+  "register_first": 146059,
+  "register": 128959,
+  "sync_no_levelup": 33611,
+  "sync_levelup_first_in_system": 58838,
+  "sync_levelup_typical": 42096,
+  "sync_same_count_noop": 27131,
+  "sync_19_to_20_reviewer": 47049,
+  "sync_0_to_100": 76914,
+  "sync_99_to_100": 61683,
+  "batch": {
+    "1": {
+      "total": 43414,
+      "perUser": 43414
+    },
+    "10": {
+      "total": 166719,
+      "perUser": 16672
+    },
+    "50": {
+      "total": 714935,
+      "perUser": 14299
+    },
+    "100": {
+      "total": 1400376,
+      "perUser": 14004
+    },
+    "200": {
+      "total": 2772602,
+      "perUser": 13863
+    }
+  },
+  "request_pending": 55767,
+  "approve_new_holder": 87468,
+  "request_again": 55767,
+  "approve_existing_holder": 53268,
+  "reject": 26449,
+  "cancel": 23320,
+  "request_instant_paid": 56383,
+  "getUsers_page100_estimate": 932188,
+  "userCount": 364,
+  "codeSize": {
+    "userDatabase": 9861,
+    "rewardMechanism": 3866,
+    "ucoin": 2057
+  }
+}

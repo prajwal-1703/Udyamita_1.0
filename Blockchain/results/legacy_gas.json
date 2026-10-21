@@ -1,0 +1,17 @@
+{
+  "deploy": {
+    "ucoin": 1352954,
+    "rewardMechanism": 1184334,
+    "userDatabase": 2248449
+  },
+  "setUser_first": 121760,
+  "setUser_second": 124548,
+  "setUser_duplicate_reverts": true,
+  "setUser_duplicate_gas": null,
+  "updateUserXP": 50731,
+  "request_first": 68019,
+  "approve_new_holder": 64992,
+  "request_again": 68019,
+  "approve_existing_holder": 48234,
+  "reject": 29222
+}
